@@ -1,0 +1,80 @@
+import math
+
+def reward_function(params):
+    ###############################################################################
+    # Example of rewarding the agent to follow center line
+
+    # Read input parameters
+    track_width = params['track_width']
+    distance_from_center = params['distance_from_center']
+    all_wheels_on_track = params['all_wheels_on_track']
+    steering_angle = params['steering_angle']
+    speed = params['speed']
+    progress = params['progress']
+    steps = params['steps']
+    is_offtrack = params['is_offtrack']
+    is_crashed = params['is_crashed']
+    waypoints = params['waypoints']
+    closest_waypoints = params['closest_waypoints']
+    heading = params['heading']
+
+    # Calculate 3 markers that are at varying distances away from the center line
+    marker_1 = 0.05 * track_width  # reduced marker distance
+    marker_2 = 0.15 * track_width
+    marker_3 = 0.3 * track_width
+
+    # Give higher reward if the car is closer to center line and vice versa
+    if distance_from_center <= marker_1:
+        reward = 3.0  # increased reward for center line
+    elif distance_from_center <= marker_2:
+        reward = 1.5
+    elif distance_from_center <= marker_3:
+        reward = 0.5
+    else:
+        reward = 1e-3 # likely crashed/ close to off track
+
+    # Penalize for being off-track or crashed
+    if not all_wheels_on_track or is_offtrack or is_crashed:
+        reward = 1e-3
+
+    # Penalize for steering too much
+    if abs(steering_angle) > 30:
+        reward *= 0.8
+
+    # Reward for completing the lap quickly
+    if steps >= 300:
+        lap_time = steps * 0.1
+        if lap_time <= 40:
+            reward += 10
+
+    # Reward for making progress
+    reward += progress / 100
+
+    # Reward for turning
+    if abs(steering_angle) > 10:
+        reward += 0.1
+
+    # Calculate the direction of the center line based on the closest waypoints
+    next_point = waypoints[closest_waypoints[1]]
+    prev_point = waypoints[closest_waypoints[0]]
+
+    # Calculate the direction in radius, arctan2(dy, dx), the result is (-pi, pi) in radians
+    track_direction = math.atan2(next_point[1] - prev_point[1], next_point[0] - prev_point[0])
+    # Convert to degree
+    track_direction = math.degrees(track_direction)
+
+    # Calculate the difference between the track direction and the heading direction of the car
+    direction_diff = abs(track_direction - heading)
+    if direction_diff > 180:
+        direction_diff = 360 - direction_diff
+
+    # Penalize the reward if the difference is too large
+    DIRECTION_THRESHOLD = 10.0
+    if direction_diff > DIRECTION_THRESHOLD:
+        reward *= 0.5
+
+    # Steering angle reward function
+    steering_reward = 1 - (abs(steering_angle) / 40) ** 2
+    reward *= steering_reward
+
+    return float(reward)
