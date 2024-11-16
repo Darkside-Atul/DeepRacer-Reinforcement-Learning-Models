@@ -1,1 +1,21 @@
+def reward_function(params):
+    speed = params['speed']
+    steering_angle = abs(params['steering_angle'])
+    distance_from_center = params['distance_from_center']
+    all_wheels_on_track = params['all_wheels_on_track']
 
+    reward = speed
+
+    # Penalize for steering too much
+    if steering_angle > 10:
+        reward *= 0.8
+
+    # Penalize for being far from the center line
+    if distance_from_center > 0.5:
+        reward *= 0.5
+
+    # Reward for staying on track
+    if all_wheels_on_track:
+        reward += 10
+
+    return reward
