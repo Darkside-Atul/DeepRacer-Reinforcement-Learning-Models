@@ -1,0 +1,41 @@
+def reward_function(params):
+    # Read input parameters
+    distance_from_center = params['distance_from_center']
+    track_width = params['track_width']
+    abs_steering = abs(params['steering_angle'])
+    all_wheels_on_track = params['all_wheels_on_track']
+
+    # Calculate 3 marks that are farther and father away from the center line
+    marker_1 = 0.1 * track_width
+    marker_2 = 0.25 * track_width
+    marker_3 = 0.5 * track_width
+
+    # Give higher reward if the car is closer to center line and vice versa
+    if distance_from_center <= marker_1:
+        reward = 2.0
+    elif distance_from_center <= marker_2:
+        reward = 0.5
+    elif distance_from_center <= marker_3:
+        reward = 0.1
+    else:
+        reward = 1e-3
+
+
+    # Calculate the reward based on progress and speed
+    progress_reward = params['progress'] / 100  # normalize progress to [0, 1]
+    speed_reward = params['speed'] / 10  # normalize speed to [0, 1]
+
+    # Penalize for being off-track or crashed
+    if params['is_offtrack'] or params['is_crashed']:
+        return 1e-3  # low reward for off-track or crashed
+
+    # Reward for completing the lap quickly
+    if params['steps'] >= 400:  # assume 400 steps per lap
+        lap_time = params['steps'] * 0.1  # assume 0.1 seconds per step
+        if lap_time <= 40:
+            return 10  # high reward for completing lap quickly
+
+    # Combine progress and speed rewards
+    reward = progress_reward + speed_reward
+
+    return float(reward)
